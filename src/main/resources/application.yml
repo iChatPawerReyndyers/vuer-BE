@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: vuer-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://ep-odd-glade-b3zxxjg2-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require}
+    username: ${DB_USER:neondb_owner}
+    password: ${DB_PASS:npg_a2OurXVLD6oQ}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 900000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: false
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:8a846c483a9924cbebc4ab7c3858cbf9fbc21e7d2b271d157eb0f772436d5c64}
+    expiration: 86400000  # 24 hours
+    refresh-expiration: 604800000  # 7 days
+  encryption:
+    key: ${AES_KEY:0123456789abcdef0123456789abcdef}  # 32 hex chars = 16 bytes for AES
+
+logging:
+  level:
+    com.vuer: DEBUG
+    org.springframework.security: DEBUG
+    org.flywaydb: INFO

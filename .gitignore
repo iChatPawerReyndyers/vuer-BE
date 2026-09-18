@@ -1,0 +1,31 @@
+# Gradle and Build Output
+.gradle/
+build/
+bin/
+out/
+.settings/
+.project
+.classpath
+
+# Compiled class files & jars
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE / Editor Files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.DS_Store
+
+# Secrets and Credentials
+src/main/resources/firebase-service-account.json
+firebase-service-account.json
+*.p8
+*.p12
+*.pem
+*.key
+.env
