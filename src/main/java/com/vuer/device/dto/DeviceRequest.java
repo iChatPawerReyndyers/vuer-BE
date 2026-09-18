@@ -7,5 +7,7 @@ import jakarta.validation.constraints.NotNull;
 public record DeviceRequest(
         @NotBlank String nickname,
         @NotNull Platform platform,
-        String fcmToken
+        String fcmToken,
+        @NotBlank String deviceToken,
+        @NotBlank String model
 ) {}

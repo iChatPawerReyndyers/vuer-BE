@@ -39,4 +39,12 @@ public class DeviceController {
         deviceService.removeDevice(user.getId(), id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<DeviceResponse> updateNickname(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id,
+            @Valid @RequestBody com.vuer.device.dto.DeviceNicknameRequest request) {
+        return ResponseEntity.ok(deviceService.updateNickname(user.getId(), id, request.nickname()));
+    }
 }

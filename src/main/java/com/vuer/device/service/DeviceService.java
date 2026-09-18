@@ -29,21 +29,25 @@ public class DeviceService {
 
     @Transactional
     public DeviceResponse registerDevice(UUID userId, DeviceRequest request) {
-        long count = deviceRepository.countByUserId(userId);
-        if (count >= MAX_DEVICES) {
-            throw new DeviceLimitExceededException("Maximum number of devices (" + MAX_DEVICES + ") reached.");
+        Device device = deviceRepository.findByUserIdAndDeviceToken(userId, request.deviceToken())
+                .orElseGet(() -> {
+                    if (deviceRepository.countByUserId(userId) >= MAX_DEVICES) {
+                        throw new DeviceLimitExceededException("Maximum number of devices (" + MAX_DEVICES + ") reached.");
+                    }
+                    return Device.builder()
+                            .userId(userId)
+                            .deviceToken(request.deviceToken())
+                            .isActive(true)
+                            .build();
+                });
+
+        device.setPlatform(request.platform());
+        device.setModel(request.model());
+        device.setFcmToken(request.fcmToken());
+        device.setActive(true);
+        if (device.getNickname() == null || device.getNickname().isBlank()) {
+            device.setNickname(request.nickname());
         }
-
-        String generatedToken = UUID.randomUUID().toString();
-
-        Device device = Device.builder()
-                .userId(userId)
-                .nickname(request.nickname())
-                .platform(request.platform())
-                .fcmToken(request.fcmToken())
-                .deviceToken(generatedToken)
-                .isActive(true)
-                .build();
 
         device = deviceRepository.save(device);
         
@@ -55,10 +59,20 @@ public class DeviceService {
         deviceRepository.deleteByIdAndUserId(deviceId, userId);
     }
 
+    @Transactional
+    public DeviceResponse updateNickname(UUID userId, UUID deviceId, String nickname) {
+        Device device = deviceRepository.findById(deviceId)
+                .filter(item -> item.getUserId().equals(userId))
+                .orElseThrow(() -> new IllegalArgumentException("Device not found"));
+        device.setNickname(nickname.trim());
+        return mapToResponse(deviceRepository.save(device));
+    }
+
     private DeviceResponse mapToResponse(Device device) {
         return new DeviceResponse(
                 device.getId(),
                 device.getNickname(),
+                device.getModel(),
                 device.getPlatform(),
                 device.isActive(),
                 device.getRegisteredAt(),

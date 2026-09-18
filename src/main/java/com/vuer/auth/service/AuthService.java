@@ -1,6 +1,7 @@
 package com.vuer.auth.service;
 
 import com.vuer.auth.dto.AuthResponse;
+import com.vuer.auth.dto.ChangePasswordRequest;
 import com.vuer.auth.dto.LoginRequest;
 import com.vuer.auth.dto.RegisterRequest;
 import com.vuer.auth.dto.UserResponse;
@@ -68,5 +69,16 @@ public class AuthService {
                 return new AuthResponse(newToken, token, jwtService.getExpirationTime(), UserResponse.from(user));
         }
         throw new IllegalArgumentException("Invalid refresh token");
+    }
+
+    public void changePassword(User user, ChangePasswordRequest request) {
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        if (request.currentPassword().equals(request.newPassword())) {
+            throw new IllegalArgumentException("New password must be different");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 }

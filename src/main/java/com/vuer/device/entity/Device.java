@@ -30,6 +30,9 @@ public class Device {
     @Column(nullable = false)
     private Platform platform;
 
+    @Column(length = 255)
+    private String model;
+
     private String fcmToken;
 
     private boolean isActive;

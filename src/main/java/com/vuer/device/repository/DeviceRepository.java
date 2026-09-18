@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface DeviceRepository extends JpaRepository<Device, UUID> {
     List<Device> findAllByUserId(UUID userId);
     long countByUserId(UUID userId);
+    Optional<Device> findByUserIdAndDeviceToken(UUID userId, String deviceToken);
     Optional<Device> findByDeviceToken(String deviceToken);
     void deleteByIdAndUserId(UUID id, UUID userId);
 }

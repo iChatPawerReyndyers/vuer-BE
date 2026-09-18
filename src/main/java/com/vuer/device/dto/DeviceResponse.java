@@ -8,6 +8,7 @@ import java.util.UUID;
 public record DeviceResponse(
         UUID id,
         String nickname,
+        String model,
         Platform platform,
         boolean isActive,
         LocalDateTime registeredAt,
