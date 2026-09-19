@@ -15,8 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,9 +39,9 @@ public class MessageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
 
         Conversation conversation = conversationService.findOrCreate(
-                device.getUserId(), 
-                request.senderAddress(), 
-                request.channelType(), 
+                device.getUserId(),
+                request.senderAddress(),
+                request.channelType(),
                 request.originalTimestamp()
         );
 
@@ -56,7 +59,9 @@ public class MessageService {
 
         MessageResponse response = new MessageResponse(
                 savedMessage.getId(),
+                conversation.getId(),
                 savedMessage.getSenderAddress(),
+                conversation.getSenderIdentity(),
                 savedMessage.getBodyEncrypted(),
                 savedMessage.getChannelType(),
                 savedMessage.getSubject(),
@@ -67,22 +72,24 @@ public class MessageService {
         webSocketNotificationService.notifyUser(device.getUserId(), response);
         pushNotificationService.sendPushNotification(device.getUserId(), device.getId(), response);
     }
-    
+
     @Transactional(readOnly = true)
     public List<MessageResponse> getConversationMessages(UUID conversationId, UUID userId) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
-                
+
         if (!conversation.getUserId().equals(userId)) {
             throw new ResourceNotFoundException("Conversation not found");
         }
-        
+
         return messageRepository.findByConversationIdOrderByOriginalTimestampDesc(conversationId).stream()
                 .map(msg -> {
                     Device device = deviceRepository.findById(msg.getDeviceId()).orElse(null);
                     return new MessageResponse(
                             msg.getId(),
+                            conversation.getId(),
                             msg.getSenderAddress(),
+                            conversation.getSenderIdentity(),
                             msg.getBodyEncrypted(),
                             msg.getChannelType(),
                             msg.getSubject(),
@@ -97,17 +104,17 @@ public class MessageService {
     public List<MessageResponse> searchMessages(UUID userId, String query) {
         // Since messages are encrypted at rest, we need to load conversations for the user,
         // fetch their messages, and filter in memory after decryption
-        List<UUID> conversationIds = conversationRepository.findByUserIdOrderByLastMessageAtDesc(userId)
-                .stream()
-                .map(c -> c.getId())
-                .collect(Collectors.toList());
+        List<Conversation> conversations = conversationRepository.findByUserIdOrderByLastMessageAtDesc(userId);
 
-        if (conversationIds.isEmpty()) {
+        if (conversations.isEmpty()) {
             return List.of();
         }
 
+        Map<UUID, Conversation> conversationsById = conversations.stream()
+                .collect(Collectors.toMap(Conversation::getId, Function.identity()));
+
         String lowerQuery = query.toLowerCase();
-        return messageRepository.findAllByConversationIdIn(conversationIds).stream()
+        return messageRepository.findAllByConversationIdIn(new ArrayList<>(conversationsById.keySet())).stream()
                 .filter(msg -> {
                     // bodyEncrypted is auto-decrypted by the JPA AttributeConverter when read
                     String body = msg.getBodyEncrypted() != null ? msg.getBodyEncrypted().toLowerCase() : "";
@@ -117,9 +124,12 @@ public class MessageService {
                 })
                 .map(msg -> {
                     Device device = deviceRepository.findById(msg.getDeviceId()).orElse(null);
+                    Conversation conversation = conversationsById.get(msg.getConversationId());
                     return new MessageResponse(
                             msg.getId(),
+                            msg.getConversationId(),
                             msg.getSenderAddress(),
+                            conversation != null ? conversation.getSenderIdentity() : msg.getSenderAddress(),
                             msg.getBodyEncrypted(),
                             msg.getChannelType(),
                             msg.getSubject(),

@@ -7,7 +7,9 @@ import java.util.UUID;
 
 public record MessageResponse(
         UUID id,
+        UUID conversationId,
         String senderAddress,
+        String senderIdentity,
         String body,
         ChannelType channelType,
         String subject,
