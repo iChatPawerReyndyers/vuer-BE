@@ -26,8 +26,13 @@ public class PushNotificationService {
         // Every active, linked device gets notified - including the device that
         // physically received the SMS/email and forwarded it (originDeviceId).
         // We no longer special-case it out.
+        //
+        // A device that registered before push permission was granted has its
+        // fcmToken stored as an empty string, not null - Firebase's Message
+        // builder rejects a blank token with "Exactly one of token, topic or
+        // condition must be specified", so this must check for blank, not just null.
         for (Device device : devices) {
-            if (device.getFcmToken() != null && device.isActive()) {
+            if (device.getFcmToken() != null && !device.getFcmToken().isBlank() && device.isActive()) {
                 try {
                     String title = "New Message: " + messageResponse.senderAddress();
                     String preview = messageResponse.body() != null && messageResponse.body().length() > 50
