@@ -22,15 +22,18 @@ public class PushNotificationService {
 
     public void sendPushNotification(UUID userId, UUID originDeviceId, MessageResponse messageResponse) {
         List<Device> devices = deviceRepository.findAllByUserId(userId);
-        
+
+        // Every active, linked device gets notified - including the device that
+        // physically received the SMS/email and forwarded it (originDeviceId).
+        // We no longer special-case it out.
         for (Device device : devices) {
-            if (!device.getId().equals(originDeviceId) && device.getFcmToken() != null && device.isActive()) {
+            if (device.getFcmToken() != null && device.isActive()) {
                 try {
                     String title = "New Message: " + messageResponse.senderAddress();
-                    String preview = messageResponse.body() != null && messageResponse.body().length() > 50 
-                            ? messageResponse.body().substring(0, 50) + "..." 
+                    String preview = messageResponse.body() != null && messageResponse.body().length() > 50
+                            ? messageResponse.body().substring(0, 50) + "..."
                             : messageResponse.body();
-                            
+
                     Message message = Message.builder()
                             .setToken(device.getFcmToken())
                             .setNotification(Notification.builder()
@@ -38,6 +41,7 @@ public class PushNotificationService {
                                     .setBody(preview)
                                     .build())
                             .putData("messageId", messageResponse.id().toString())
+                            .putData("conversationId", messageResponse.conversationId().toString())
                             .build();
 
                     String response = FirebaseMessaging.getInstance().send(message);
