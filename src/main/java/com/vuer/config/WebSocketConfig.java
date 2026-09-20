@@ -25,9 +25,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // No .withSockJS() here - the app connects with a plain native
+        // WebSocket via @stomp/stompjs's brokerURL, not through SockJS's
+        // own handshake protocol. SockJS exists for browsers without native
+        // WebSocket support, which doesn't apply here, and having it enabled
+        // caused the server to reject every raw upgrade request to /ws with
+        // "400 Bad Request" instead of accepting it - the two were never
+        // actually compatible.
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .setAllowedOriginPatterns("*");
     }
 
     @Override
