@@ -1,11 +1,14 @@
 package com.vuer.notification.service;
 
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import com.vuer.device.entity.Device;
 import com.vuer.device.repository.DeviceRepository;
 import com.vuer.message.dto.MessageResponse;
+import com.vuer.message.entity.ChannelType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,10 +21,19 @@ import java.util.UUID;
 @Slf4j
 public class PushNotificationService {
 
+    private static final String SMS_ICON = "ic_notification_sms";
+    private static final String EMAIL_ICON = "ic_notification_email";
+    private static final String SMS_COLOR = "#F5A623";
+    private static final String EMAIL_COLOR = "#4A90E2";
+
     private final DeviceRepository deviceRepository;
 
     public void sendPushNotification(UUID userId, UUID originDeviceId, MessageResponse messageResponse) {
         List<Device> devices = deviceRepository.findAllByUserId(userId);
+
+        boolean isEmail = messageResponse.channelType() == ChannelType.EMAIL;
+        String icon = isEmail ? EMAIL_ICON : SMS_ICON;
+        String color = isEmail ? EMAIL_COLOR : SMS_COLOR;
 
         // Every active, linked device gets notified - including the device that
         // physically received the SMS/email and forwarded it (originDeviceId).
@@ -44,6 +56,12 @@ public class PushNotificationService {
                             .setNotification(Notification.builder()
                                     .setTitle(title)
                                     .setBody(preview)
+                                    .build())
+                            .setAndroidConfig(AndroidConfig.builder()
+                                    .setNotification(AndroidNotification.builder()
+                                            .setIcon(icon)
+                                            .setColor(color)
+                                            .build())
                                     .build())
                             .putData("messageId", messageResponse.id().toString())
                             .putData("conversationId", messageResponse.conversationId().toString())
