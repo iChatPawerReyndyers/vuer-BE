@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private static final int MAX_DEVICES = 5;
+    private static final int MAX_DEVICES = 8;
 
     @Transactional(readOnly = true)
     public List<DeviceResponse> getUserDevices(UUID userId) {
@@ -50,7 +50,7 @@ public class DeviceService {
         }
 
         device = deviceRepository.save(device);
-        
+
         return mapToResponse(device);
     }
 
