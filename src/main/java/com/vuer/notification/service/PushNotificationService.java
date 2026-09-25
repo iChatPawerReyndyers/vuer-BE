@@ -74,7 +74,7 @@ public class PushNotificationService {
                             .putData("senderAddress", messageResponse.senderAddress() != null ? messageResponse.senderAddress() : "")
                             .putData("body", messageResponse.body() != null ? messageResponse.body() : "")
                             .putData("channelType", messageResponse.channelType() != null ? messageResponse.channelType().name() : "SMS")
-                            .putData("originalTimestamp", messageResponse.originalTimestamp() != null ? messageResponse.originalTimestamp() : "")
+                            .putData("originalTimestamp", messageResponse.originalTimestamp() != null ? messageResponse.originalTimestamp().toString() : "")
                             .putData("deviceNickname", messageResponse.deviceNickname() != null ? messageResponse.deviceNickname() : "")
                             .build();
 
