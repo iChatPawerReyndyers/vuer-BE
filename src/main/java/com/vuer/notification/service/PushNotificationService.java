@@ -23,8 +23,9 @@ public class PushNotificationService {
 
     private static final String SMS_ICON = "ic_notification_sms";
     private static final String EMAIL_ICON = "ic_notification_email";
-    private static final String SMS_COLOR = "#F5A623";
-    private static final String EMAIL_COLOR = "#4A90E2";
+    private static final String SMS_COLOR = "#FF9500";
+    private static final String EMAIL_COLOR = "#007AFF";
+    private static final String CHANNEL_ID = "vuer_messages";
 
     private final DeviceRepository deviceRepository;
 
@@ -37,7 +38,6 @@ public class PushNotificationService {
 
         // Every active, linked device gets notified - including the device that
         // physically received the SMS/email and forwarded it (originDeviceId).
-        // We no longer special-case it out.
         //
         // A device that registered before push permission was granted has its
         // fcmToken stored as an empty string, not null - Firebase's Message
@@ -46,10 +46,11 @@ public class PushNotificationService {
         for (Device device : devices) {
             if (device.getFcmToken() != null && !device.getFcmToken().isBlank() && device.isActive()) {
                 try {
-                    String title = "New Message: " + messageResponse.senderAddress();
-                    String preview = messageResponse.body() != null && messageResponse.body().length() > 50
-                            ? messageResponse.body().substring(0, 50) + "..."
-                            : messageResponse.body();
+                    // Display the sender address / email as the title directly, matching the custom notification UI design
+                    String title = messageResponse.senderAddress() != null ? messageResponse.senderAddress() : "Vuer";
+                    String preview = messageResponse.body() != null && messageResponse.body().length() > 100
+                            ? messageResponse.body().substring(0, 100) + "..."
+                            : (messageResponse.body() != null ? messageResponse.body() : "");
 
                     Message message = Message.builder()
                             .setToken(device.getFcmToken())
@@ -58,13 +59,23 @@ public class PushNotificationService {
                                     .setBody(preview)
                                     .build())
                             .setAndroidConfig(AndroidConfig.builder()
+                                    .setPriority(AndroidConfig.Priority.HIGH)
                                     .setNotification(AndroidNotification.builder()
+                                            .setChannelId(CHANNEL_ID)
                                             .setIcon(icon)
                                             .setColor(color)
+                                            .setDefaultSound(true)
+                                            .setDefaultVibrateTimings(true)
+                                            .setPriority(AndroidNotification.Priority.HIGH)
                                             .build())
                                     .build())
-                            .putData("messageId", messageResponse.id().toString())
-                            .putData("conversationId", messageResponse.conversationId().toString())
+                            .putData("messageId", messageResponse.id() != null ? messageResponse.id().toString() : "")
+                            .putData("conversationId", messageResponse.conversationId() != null ? messageResponse.conversationId().toString() : "")
+                            .putData("senderAddress", messageResponse.senderAddress() != null ? messageResponse.senderAddress() : "")
+                            .putData("body", messageResponse.body() != null ? messageResponse.body() : "")
+                            .putData("channelType", messageResponse.channelType() != null ? messageResponse.channelType().name() : "SMS")
+                            .putData("originalTimestamp", messageResponse.originalTimestamp() != null ? messageResponse.originalTimestamp() : "")
+                            .putData("deviceNickname", messageResponse.deviceNickname() != null ? messageResponse.deviceNickname() : "")
                             .build();
 
                     String response = FirebaseMessaging.getInstance().send(message);
