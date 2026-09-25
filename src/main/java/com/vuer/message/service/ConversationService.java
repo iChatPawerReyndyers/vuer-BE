@@ -41,9 +41,13 @@ public class ConversationService {
     }
     
     private String normalizeIdentity(String senderAddress, ChannelType channelType) {
-        if (channelType == ChannelType.SMS) {
-            return senderAddress.replaceAll("[^0-9+]", "");
+        if (senderAddress == null || senderAddress.isBlank()) {
+            return "Unknown";
         }
-        return senderAddress.toLowerCase();
+        if (channelType == ChannelType.SMS) {
+            String digits = senderAddress.replaceAll("[^0-9+]", "");
+            return digits.isEmpty() ? senderAddress.trim() : digits;
+        }
+        return senderAddress.toLowerCase().trim();
     }
 }
