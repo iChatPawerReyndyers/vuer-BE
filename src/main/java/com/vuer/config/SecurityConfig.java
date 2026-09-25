@@ -33,7 +33,7 @@ public class SecurityConfig {
                         // itself via the deviceToken field in its own request body (checked in
                         // MessageService), so it must be exempted here or every ingest attempt gets
                         // a 403 before it ever reaches the controller.
-                        .requestMatchers("/api/auth/**", "/api/messages/ingest", "/ws/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/messages/ingest", "/api/health", "/ws/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
