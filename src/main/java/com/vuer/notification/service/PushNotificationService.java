@@ -46,8 +46,14 @@ public class PushNotificationService {
         for (Device device : devices) {
             if (device.getFcmToken() != null && !device.getFcmToken().isBlank() && device.isActive()) {
                 try {
-                    // Display the sender address / email as the title directly, matching the custom notification UI design
-                    String title = messageResponse.senderAddress() != null ? messageResponse.senderAddress() : "Vuer";
+                    // Prefer the nickname the user set for this contact
+                    // (Conversation.displayName) over the raw phone
+                    // number/email - falls back to the raw address for a
+                    // sender that's never been renamed.
+                    String rawAddress = messageResponse.senderAddress() != null ? messageResponse.senderAddress() : "Vuer";
+                    String title = messageResponse.conversationDisplayName() != null && !messageResponse.conversationDisplayName().isBlank()
+                            ? messageResponse.conversationDisplayName()
+                            : rawAddress;
                     String preview = messageResponse.body() != null && messageResponse.body().length() > 100
                             ? messageResponse.body().substring(0, 100) + "..."
                             : (messageResponse.body() != null ? messageResponse.body() : "");

@@ -1,5 +1,7 @@
 package com.vuer.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -27,7 +29,8 @@ public class FirebaseConfig {
                 String envJson = System.getenv("FIREBASE_CREDENTIALS_JSON");
                 if (envJson != null && !envJson.isBlank()) {
                     log.info("Loading Firebase credentials from FIREBASE_CREDENTIALS_JSON environment variable");
-                    serviceAccount = new ByteArrayInputStream(envJson.getBytes(StandardCharsets.UTF_8));
+                    String cleaned = sanitizeJson(envJson);
+                    serviceAccount = new ByteArrayInputStream(cleaned.getBytes(StandardCharsets.UTF_8));
                 }
 
                 // 2. Check file path from GOOGLE_APPLICATION_CREDENTIALS (Render Secret File)
@@ -55,8 +58,15 @@ public class FirebaseConfig {
                     return;
                 }
 
+                // Buffer the credential bytes so we can both log which account
+                // was loaded (helps catch "used the wrong project's key" or a
+                // stale/revoked key at a glance) and hand them to Google's SDK,
+                // without consuming the stream twice.
+                byte[] credentialBytes = serviceAccount.readAllBytes();
+                logServiceAccountIdentity(credentialBytes);
+
                 FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                        .setCredentials(GoogleCredentials.fromStream(new ByteArrayInputStream(credentialBytes)))
                         .build();
 
                 FirebaseApp.initializeApp(options);
@@ -64,6 +74,40 @@ public class FirebaseConfig {
             }
         } catch (Exception e) {
             log.error("Failed to initialize Firebase Admin SDK", e);
+        }
+    }
+
+    /**
+     * Strips common copy-paste artifacts from a pasted env var value:
+     * surrounding whitespace, and a single pair of wrapping quotes that
+     * sometimes get added when a JSON value is pasted into a dashboard
+     * text field that assumes a plain string.
+     */
+    private String sanitizeJson(String raw) {
+        String trimmed = raw.trim();
+        if (trimmed.length() >= 2
+                && ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+                || (trimmed.startsWith("'") && trimmed.endsWith("'")))) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    /**
+     * Logs the service account's client_email and project_id (safe, public
+     * fields) so it's obvious at startup which credential is active - e.g.
+     * to spot a stale key or a key from the wrong Firebase project without
+     * needing to wait for a push notification to fail first. Never logs the
+     * private_key itself.
+     */
+    private void logServiceAccountIdentity(byte[] credentialBytes) {
+        try {
+            JsonNode node = new ObjectMapper().readTree(credentialBytes);
+            String clientEmail = node.path("client_email").asText("<missing>");
+            String projectId = node.path("project_id").asText("<missing>");
+            log.info("Firebase service account loaded: client_email={}, project_id={}", clientEmail, projectId);
+        } catch (Exception e) {
+            log.warn("Could not parse Firebase credential JSON to log its identity: {}", e.getMessage());
         }
     }
 }

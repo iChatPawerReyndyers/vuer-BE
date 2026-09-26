@@ -5,9 +5,11 @@ import com.vuer.device.repository.DeviceRepository;
 import com.vuer.message.dto.ConversationResponse;
 import com.vuer.message.dto.MessageIngestRequest;
 import com.vuer.message.dto.MessageResponse;
+import com.vuer.message.dto.UpdateDisplayNameRequest;
 import com.vuer.message.entity.Message;
 import com.vuer.message.repository.ConversationRepository;
 import com.vuer.message.repository.MessageRepository;
+import com.vuer.message.service.ConversationService;
 import com.vuer.message.service.MessageService;
 import com.vuer.user.entity.User;
 import jakarta.validation.Valid;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class MessageController {
 
     private final MessageService messageService;
+    private final ConversationService conversationService;
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final DeviceRepository deviceRepository;
@@ -49,8 +52,8 @@ public class MessageController {
                         Message msg = latestMessage.get();
                         lastPreview = msg.getBodyEncrypted() != null
                                 ? (msg.getBodyEncrypted().length() > 80
-                                    ? msg.getBodyEncrypted().substring(0, 80) + "..."
-                                    : msg.getBodyEncrypted())
+                                   ? msg.getBodyEncrypted().substring(0, 80) + "..."
+                                   : msg.getBodyEncrypted())
                                 : "";
                         Device device = deviceRepository.findById(msg.getDeviceId()).orElse(null);
                         deviceNickname = device != null ? device.getNickname() : "Unknown";
@@ -84,5 +87,18 @@ public class MessageController {
             @AuthenticationPrincipal User user,
             @RequestParam String q) {
         return ResponseEntity.ok(messageService.searchMessages(user.getId(), q));
+    }
+
+    @PatchMapping("/conversations/display-name")
+    public ResponseEntity<Void> updateDisplayName(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody UpdateDisplayNameRequest request) {
+        conversationService.updateDisplayNameBySender(
+                user.getId(),
+                request.senderAddress(),
+                request.channelType(),
+                request.displayName()
+        );
+        return ResponseEntity.noContent().build();
     }
 }

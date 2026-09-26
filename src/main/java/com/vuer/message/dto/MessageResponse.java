@@ -10,6 +10,7 @@ public record MessageResponse(
         UUID conversationId,
         String senderAddress,
         String senderIdentity,
+        String conversationDisplayName,
         String body,
         ChannelType channelType,
         String subject,
