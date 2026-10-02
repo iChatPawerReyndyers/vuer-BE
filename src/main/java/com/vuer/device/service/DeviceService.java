@@ -29,18 +29,17 @@ public class DeviceService {
 
     @Transactional
     public DeviceResponse registerDevice(UUID userId, DeviceRequest request) {
-        Device device = deviceRepository.findByUserIdAndDeviceToken(userId, request.deviceToken())
+        Device device = deviceRepository.findByDeviceToken(request.deviceToken())
                 .orElseGet(() -> {
                     if (deviceRepository.countByUserId(userId) >= MAX_DEVICES) {
                         throw new DeviceLimitExceededException("Maximum number of devices (" + MAX_DEVICES + ") reached.");
                     }
                     return Device.builder()
-                            .userId(userId)
                             .deviceToken(request.deviceToken())
-                            .isActive(true)
                             .build();
                 });
 
+        device.setUserId(userId);
         device.setPlatform(request.platform());
         device.setModel(request.model());
         device.setFcmToken(request.fcmToken());
